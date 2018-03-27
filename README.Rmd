@@ -2,10 +2,7 @@
 title: "PWN workflow for the detection of declining trees using MaxEnt"
 author: "Pieter Beck", "Laura Martinez"
 date: "March, 2018"
-output:
-  html_document:
-    keep_md: yes
-    toc: yes
+output:rmarkdown::github_document
 ---
 
 # To do
