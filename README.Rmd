@@ -25,21 +25,6 @@ Date: March, 2018
 
 The goal of CanHeMonR.MaxEnt is to create a workflow to detect declining trees in aerial images through MaxEnt library
 
-## Algorithm flowchart
-```{r, echo=FALSE}
-DiagrammeR::DiagrammeR("
-graph TB
-    A>Point shapefile with precences] --> D[Sample presences and backgroud points]
-    B>Raster files and textures to run] --> D
-    C>Biased tifs] --> D
-    D --> E>Serialize object with the points]
-    E --> F[Calibration and creation of MaxEnt model]
-    F --> G>serialize object with the model]
-    G --> H[Run model over the tiles]
-    B --> H
-")
-```
-
 ## Installation
 
 You can install CanHeMonR.MaxEnt from github with:
