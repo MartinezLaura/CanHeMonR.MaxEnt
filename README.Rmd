@@ -25,7 +25,7 @@ Date: March, 2018
 
 The goal of CanHeMonR.MaxEnt is to create a workflow to detect declining trees in aerial images through MaxEnt library
 
-#Algorithm flowchart
+## Algorithm flowchart
 ```{r, echo=FALSE}
 DiagrammeR::DiagrammeR("
 graph TB
