@@ -1,8 +1,16 @@
 ---
+output: rmarkdown::github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(collapse=TRUE, comment="##", fig.retina=2, fig.path = "README_figs/README-")
+```
+---
 title: "PWN workflow for the detection of declining trees using MaxEnt"
 author: "Pieter Beck", "Laura Martinez"
 date: "March, 2018"
-output:rmarkdown::github_document
 ---
 
 # To do
