@@ -7,13 +7,15 @@ output: rmarkdown::github_document
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(collapse=TRUE, comment="##", fig.retina=2, fig.path = "README_figs/README-")
 ```
----
-title: "PWN workflow for the detection of declining trees using MaxEnt"
+# "PWN workflow for the detection of declining trees using MaxEnt"
 
-author: "Pieter Beck", "Laura Martinez"
+Authors: 
+    + Pieter Beck
+    + Laura Martinez
 
-date: "March, 2018"
----
+Date: "March, 2018"
+
+[![Project Status: Active - The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/0.1.0/active.svg)](http://www.repostatus.org/#active) 
 
 # To do
 
