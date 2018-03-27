@@ -1,0 +1,26 @@
+Package: CanHeMonR.MaxEnt
+Type: Package
+Title: Application of MaxEnt for canopy health monitoring through airbone image analysis
+Version: 2.0
+Date: 2018-03-15
+Authors@R: c(person("Pieter", "Beck", email = "pieter.beck@jrc.ec.europa.eu", role = c("aut")), person("Laura", "Martinez", email = "lmartisa@gmail.com", role = c("cre")))
+Description: MaxEnt model for the detection of declining trees in Portugal through high definition multispectral airbone image
+Depends:
+    R (>= 3.4)
+Imports:
+    raster,
+    doParallel,
+    dismo,
+    foreach,
+    maptools,
+    rgeos,
+    rJava,
+    DiagrammeR,
+    sp,
+    sf,
+    units,
+    dplyr,
+    rgdal
+License: GPL-3
+LazyData: TRUE
+RoxygenNote: 6.0.1

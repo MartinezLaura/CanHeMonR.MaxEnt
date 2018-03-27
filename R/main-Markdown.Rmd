@@ -1,0 +1,147 @@
+---
+title: "MaxEnt model for the detection of declining trees"
+output:
+  html_notebook: default
+  html_document: default
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+print("Hello World!")
+```
+* Packages required:
+  + raster
+  + doParallel
+  + foreach
+  + rJava
+  + dismo, with maxent >= 3.4
+  + maptools
+  + rgeos
+  + DiagrammeR
+  + sp
+
+For maxent installation please go to: 
+https://biodiversityinformatics.amnh.org/open_source/maxent/
+
+
+Please run the following code to check the avaiable packages and install if necessary
+
+```{r}
+RequiredPackages <- c("rgeos", "raster","doParallel", "foreach", "rJava", "dismo", "maptools", "DiagrammeR", "sp") 
+for (i in RequiredPackages) { #Installs packages if not yet installed
+    if (!require(i, character.only = TRUE)) install.packages(i)
+}
+dismo::maxent()
+```
+
+##Algorithm flowchart
+```{r, echo=FALSE}
+DiagrammeR::DiagrammeR("
+graph TB
+    A>Point shapefile with precences] --> D[Sample presences and backgroud points]
+    B>Raster files and textures to run] --> D
+    C>Biased tifs] --> D
+    D --> E>Serialize object with the points]
+    E --> F[Calibration and creation of MaxEnt model]
+    F --> G>serialize object with the model]
+    G --> H[Run model over the tiles]
+    B --> H
+")
+```
+
+
+##Sampling presence and pseudo-absent data for maxent
+Function that creates a sample dataframe for the selected classes with the presences and background points for the selected rasters. This sample will be used as training data for image classification through MaxEnt
+
+#####Inputs
+
++ Points shapefile with the presence data.
++ Path to the rasters and the associated textures of the area that we want to predict. It is important to add all the areas that we want to predict and not only a sample of it in order to help the model describe the variation of the data.
++ A vector with the classes that we want to model. this vector has to have the same fields as the ones described on the shapefile
++ An integer describing the number of background points that we want to sample for each tile
+
+<em>More information and examples of the function in the code</em>
+
+#####Output
++ Serialized object (rdsdata file) with the data frame with the presences and absences points of the selected classes
+
+#####Function
+You can set the parameters and run it in the R console with:  
+```{r, eval=F, echo=T}
+render("sample_points.r", params = list(r_train_dir= "" ,
+                                        text_train_dir= "",
+                                        tile= "",
+                                        text= "",
+                                        prob_tifs= "",
+                                        vuln_classes= "",
+                                        training_pol_filename= "", 
+                                        field_name= "",
+                                        nimputs_tile="",
+                                        data_outp_dir="",
+                                        abs_samp= "",
+                                        parallel= "",
+                                        nWorkers= "",
+                                        data_outp_name= "",
+                                        randompt= ""))
+
+```
+
+
+##Calibrate and creation of the MaxEnt model
+Calibration and creation of the model for each class selected in the previous step, using a raster brick as predictors. If desired, it can output also the stadisctics of the model to measure the preformace.
+
+#####Inputs
+
++ A vector with the classes that we want to model. this vector has to have the same fields as the ones described in the previus function
++ Serialized object (rdsdata file) with the data frame with the presences and absences points of the selected classes
+
+<em>More information and examples of the function in the code</em>
+
+
+#####Output
++ Serialized object (rdsdata file) with class-specific distribution MaxEnt models
+
+#####Function
+You can set the parameters and run it in the R console with:  
+```{r, eval=F, echo=T}
+render("calibrate_model.r", params = list(vuln_classes = "", 
+                                          training_path = "", 
+                                          model_outp_dir = "", 
+                                          name = "",
+                                          stadistics = "", 
+                                          myargs = "", 
+                                          model_type = "",
+                                          stadisticspath = ""))
+
+```
+
+##Run model
+Run a saved MaxEnt model on the image data you want to predict.
+
+#####Inputs
++ Path to the rasters and the associated textures of the area that we want to predict. It is important to add all the areas that we want to predict and not only a sample of it in order to help the model describe the variation of the data.
++ Serialized object (rdsdata file) with the MaxEnt model you want to use
+
+<em>More information and examples of the function in the code</em>
+
+
+#####Output
++ A raster image for each tile with the probabilities or cummulative probabilities of presence for each class
+
+#####Function
+You can set the parameters and run it in the R console with:  
+```{r, eval=F, echo=T}
+render("run_model.r", params = list(predictor_dir = "",
+                                         text_train_dir = "",
+                                         MaxEntmodel_dir = "",
+                                         fname_MaxEntmodel_r = "",
+                                         output_dir = "",
+                                         rastername = "",
+                                         model_type = "",
+                                         loop = ""))
+
+```
+
