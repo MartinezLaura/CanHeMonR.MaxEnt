@@ -7,7 +7,7 @@
 classify_maxent_output_based_on_error_stats(r_pred_dir, tile = "ALL",
   max_permittable_cutoff_final = max_permittable_cutoff_final,
   max_permittable_cutoff_npix_final = max_permittable_cutoff_npix_final,
-  radius = 0.75, outp_dir, parallel = F, nWorkers = 4)
+  max_area, res, radius = 0.75, outp_dir)
 }
 \arguments{
 \item{r_pred_dir}{A directory where binary .tifs predicting presence as 1 and absence as 0 can be found for multiple tiles}
@@ -19,13 +19,13 @@ classify_maxent_output_based_on_error_stats(r_pred_dir, tile = "ALL",
 \item{max_permittable_cutoff_npix_final}{Cutoff-level for the nr of pixels (clumpsize) of presence that a circles of radius radius
 needs to contain to be maintained as presence. Typically produced by error_summaries.R}
 
+\item{max_area}{The maximum are aof a polygon, all the polygons above this area will be filtered}
+
+\item{res}{The resolution of the raster}
+
 \item{radius}{The radius of the disk in which clump size is counted}
 
 \item{outp_dir}{the directory to write output images to.}
-
-\item{parallel}{Should the code be run in parallel using the doParallel package? Default is FALSE.}
-
-\item{nWorkers}{If running the ocde in parallel, how many workers should be used? Default is 4.}
 }
 \value{
 empty

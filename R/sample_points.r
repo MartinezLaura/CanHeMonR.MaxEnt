@@ -20,6 +20,7 @@
 #' @param nWorkers Integer. If running the ocde in parallel, how many workers should be used? Default is 4
 #' @param data_outp_name Character. Name of the data to output
 #' @param randompt Boolean. if True random points will be added in the tiles that doesn't have any visual point. Default TRUE
+#' @param EOS if EOS true the for loop will be avoided if False will work with a for loop. Default FALSE
 #' @return Saves a serialize object with the list with class-specific data frames of which the first column is the presence-absence response that can be used to train distribution model.
 #' @examples \dontrun{
 # tt <-  sample_points(r_train_dir <- '/EOS/projects/CANHEMON/data/ADS_CB_Buffer/',
@@ -35,15 +36,14 @@
 #                               abs_samp = 10000,
 #                               parallel = T,
 #                               nWorkers = 16,
-#                               data_outp_name = 'samp_Maxent_CB-Buffer.rdsdata',
-#                               randompt = TRUE)
+#                               data_outp_name = 'samp_Maxent_CB-Buffer',
+#                               randompt = TRUE,
+#                               EOS = FALSE)
 #'                               }
 
 #' @export
 sample_points <- function(r_train_dir, text_train_dir, tile = 'ALL', text = 'ALL', prob_tifs = FALSE, vuln_classes, training_pol_filename, field_name, 
-                                                    ninputs_tile, data_outp_dir, abs_samp = 100, parallel = F, nWorkers = 4, data_outp_name, randompt = TRUE){
-
-  
+                          ninputs_tile, data_outp_dir, abs_samp = 100, parallel = F, nWorkers = 4, data_outp_name, randompt = TRUE, EOS = FALSE){
   require(maptools)
   require(raster)
   require(doParallel)
@@ -61,194 +61,95 @@ sample_points <- function(r_train_dir, text_train_dir, tile = 'ALL', text = 'ALL
   #only keep training points/polygons that fall in the vuln_classes to be considered
   Pols <- Pols[is.element(Pols@data[[field_name]] , unlist(vuln_classes)), ]
   
-  
-  #if you want to run all the tiles in a directory, harvest the available tilenames
-  if (tile[1] == 'ALL'){
-    #harvest all the tif files in the directories holding covariate/predictor images
-    all_tifs <- list.files(r_train_dir, recursive = F, full.names = T, pattern = ".tif")
-    all_tifs <- unique(all_tifs)
-    all_tifs <- all_tifs[grepl('.tif',all_tifs)]
-    #excluded the tif files in the unprojected folder
-    all_tifs <- all_tifs[!grepl('orig_noPRJ', all_tifs)]
-    #excluded the tif files ending like .aux.xml
-    all_tifs <- all_tifs[!grepl('.aux.xml', all_tifs)]
-    tile <- substr(basename(all_tifs),1,16)
-    tile <- unique(tile)
-    #only keep tiles that start  with 'pt'
-    tile <- tile[substr(tile,1,2) == 'pt']
-    #only keep the original tiles and avoid to duplicate the basenainstalleme. Ex: pt617000_4404000 and pt617000-4404000
-    #only happends when the textures and the tiles are in the same folder
-    tile <- tile[substr(tile,9,9) == '-']
-    cat(length(tile),' tiles are considered\n')
-  }else{
-    tifs <- read.csv(tile, header = FALSE)
-    tile <- unlist(lapply(tifs$V1, function(x) paste0(r_train_dir,x)))
-    tile <- tile[!grepl('.aux.xml', tile)]
-    all_tifs <- unlist(tile)
-    tile <- substr(basename(tile),1,16)
-    tile <- unique(tile)
-    tile = tile[substr(tile,1,2) == 'pt']
-    #only keep the original tiles and avoid to duplicate the basename. Ex: pt617000_4404000 and pt617000-4404000
-    #only happends when the textures and the tiles are in the same folder
-    tile <- tile[substr(tile,9,9) == '-']
-    cat(length(tile),' tiles are considered\n')
-  }
-  if (text[1] == 'ALL'){
-    all_tifs <- append(all_tifs, list.files(text_train_dir, recursive = F, full.names = T, pattern = ".tif"))
-    all_tifs <- unique(all_tifs)
-  }else{
-    texts <- read.csv(text, header = FALSE)
-    texts <- lapply(texts$V1, function(x) list.files(text_train_dir, recursive = F, full.names = T, pattern = as.character(x)))
-    texts <- texts[!grepl('.aux.xml', texts)]
-    all_text <- unlist(texts)
-    all_tifs <- append(all_tifs, all_text)
-    all_tifs <- unique(all_tifs)
-  }
-  
+  all_tifs <- Tiles(r_train_dir, tile, text_train_dir, text)
   
   # a list to hold the outputs
   maxent_training_dfs <- list()
-  
-  
-  #set up the cluster for parallel processing
-  if (parallel){
-    try(parallel::stopCluster(cl), silent=T)
-    # Test that the cores assign not overlap the maximum cores available
-    maxcl <- (parallel::detectCores(logical = TRUE)-1)
-    if (nWorkers <= maxcl){
-      cl <- parallel::makeCluster(nWorkers, outfile = paste0(data_outp_dir,"log-",data_outp_name,".txt"))
-      doParallel::registerDoParallel(cl)
-    }else{
-      cl <- parallel::makeCluster(maxcl, outfile = paste0(data_outp_dir,"log-",data_outp_name,".txt"))
-      doParallel::registerDoParallel(cl)
-    }
-  }
-  
-  #choose the appropriate operator for the foreach loop
-  `%op%` <- if (parallel) `%dopar%` else `%do%`
   tile_dat <- data.frame()
-  
-  stime <- system.time({maxent_training_dfs <- foreach(i = 1:length(tile), .combine = rbind.data.frame, .inorder=F) %op% {
-    tile_i <- tile[i]
-    cat(tile_i,'\n')
+  #set up the cluster for parallel processing
+  if(!EOS){
+    `%op%` <- Par(nWorkers, data_outp_dir, data_outp_name, parallel) 
     
-    #grep all the textures needes for this tile
-    pred_rs <- all_tifs[grepl(tile_i, all_tifs)]
-    
-    if (length(pred_rs) == ninputs_tile){
-      #create the brick/stack of predictor layers for this tile
-      r_train <- raster::stack(pred_rs)
-      #adjust the name so the tile-specific label is removed, and names are consistent between tiles
-      names(r_train) <- paste0('l',unlist(lapply(strsplit(names(r_train),tile_i_multiversion_for_regexpr,fixed=F),function(x){x[-1]})))
-      #check if you have any points in this tile
-      #crop the calval to this tile
-      Pols_tile <- raster::crop(Pols, raster::raster(pred_rs[1]))
-
-      if (!is.null(Pols_tile)){
-        #only proceed if you have training points in this tile
-        #pres_train_tile <- NULL
-        # extract the data for this tile for each class
-        for (j in 1:length(vuln_classes)){
-          pres_dat <- data.frame()
-          
-          if (any(is.element(Pols_tile@data[[field_name]] , vuln_classes[[j]]))){
-            #pres_train <- NULL
-            class. <- vuln_classes[[j]]
-            cat('Sampling data for class ',class.[1],'\n')
-            # the sampling for points:
-            pres_train_tile <- Pols_tile[is.element(Pols_tile@data[[field_name]] , class.),]
-            #get covariates for presence locations
-            pres_dat <- raster::extract(r_train, pres_train_tile, df = TRUE)
-            #erase the ID column if exist
-            pres_dat$ID <- NULL
+    stime <- system.time({maxent_training_dfs <- foreach(i = 1:length(tile), .combine = rbind.data.frame, .inorder=F) %op% {
+      tile_i <- tile[i]
+      cat(tile_i,'\n')
+      
+      #grep all the textures needes for this tile
+      pred_rs <- all_tifs[grepl(tile_i, all_tifs)]
+      
+      if (length(pred_rs) == ninputs_tile){
+        #create the brick/stack of predictor layers for this tile
+        pred_rs = normalizePath(pred_rs)
+        r_train <- raster::stack(pred_rs)
+        tile_i_multiversion_for_regexpr <- gsub("-", ".", tile_i)
+        #adjust the name so the tile-specific label is removed, and names are consistent between tiles
+        names(r_train) <- paste0('l',unlist(lapply(strsplit(names(r_train),tile_i_multiversion_for_regexpr,fixed=F),function(x){x[-1]})))
+        #check if you have any points in this tile
+        #crop the calval to this tile
+        Pols_tile <- raster::crop(Pols, raster::raster(pred_rs[1]))
+        
+        if (!is.null(Pols_tile)){
+          #only proceed if you have training points in this tile
+          #pres_train_tile <- NULL
+          # extract the data for this tile for each class
+          for (j in 1:length(vuln_classes)){
+            pres_dat <- data.frame()
             
-            if(vuln_classes[[j]] == 'false_pos'){
-              pres_dat <- cbind.data.frame(pres = c(rep(0,nrow(pres_dat))),pres_dat)
-              pres_dat$class <- rep('Pb',nrow(pres_dat))
-              #add the data for this class and tile, to the data for this tile
-              tile_dat <- rbind.data.frame(tile_dat, pres_dat)
+            if (any(is.element(Pols_tile@data[[field_name]] , vuln_classes[[j]]))){
+              #pres_train <- NULL
+              class. <- vuln_classes[[j]]
+              cat('Sampling data for class ',class.[1],'\n')
+              # the sampling for points:
+              pres_train_tile <- Pols_tile[is.element(Pols_tile@data[[field_name]] , class.),]
+              #get covariates for presence locations
+              pres_dat <- raster::extract(r_train, pres_train_tile, df = TRUE)
+              #erase the ID column if exist
+              pres_dat$ID <- NULL
+              
+              if(vuln_classes[[j]] == 'false_pos'){
+                pres_dat <- cbind.data.frame(pres = c(rep(0,nrow(pres_dat))),pres_dat)
+                pres_dat$class <- rep('Pb',nrow(pres_dat))
+                #add the data for this class and tile, to the data for this tile
+                tile_dat <- rbind.data.frame(tile_dat, pres_dat)
+              }
+              else{
+                pres_dat <- cbind.data.frame(pres = c(rep(1,nrow(pres_dat))),pres_dat)
+                pres_dat$class <- rep('Pb',nrow(pres_dat))
+                #add the data for this class and tile, to the data for this tile
+                tile_dat <- rbind.data.frame(tile_dat, pres_dat)
+              }
             }
             else{
-              pres_dat <- cbind.data.frame(pres = c(rep(1,nrow(pres_dat))),pres_dat)
-              pres_dat$class <- rep('Pb',nrow(pres_dat))
-              #add the data for this class and tile, to the data for this tile
-              tile_dat <- rbind.data.frame(tile_dat, pres_dat)
+              cat('There are no points falling in this tile:', tile_i,'for the class:', vuln_classes[[j]], '\n')
             }
           }
-          else{
-            cat('There are no points falling in this tile:', tile_i,'for the class:', vuln_classes[[j]], '\n')
-          }
         }
-      }
-      if(randompt == TRUE && prob_tifs == FALSE){
-        #get covariates for randomly sampled absence locations
-        abs_dat <- data.frame()
-        
-        if (exists('pres_train_tile')){
-          cat('Detecting absences for tiles with visual points\n')
-          abs_loc <- dismo::randomPoints(r_train, n = abs_samp, p = pres_train_tile, warn=0)
-          #exclude pseude-absences that fall too close (< 20 m) to presence locations
-          dist_abs2pres <- sp::spDists(abs_loc, sp::coordinates(Pols_tile))
-          mindist_abs2pres <- apply(dist_abs2pres, 1, min)
-          abs_loc <- abs_loc[mindist_abs2pres > 20,]
-        }else{
-          cat('Detecting absences for tiles without visual points\n')
-          abs_loc <- dismo::randomPoints(r_train, n = abs_samp, warn=0 )
-        }
-        abs_dat <- data.frame(raster::extract(r_train, abs_loc))
-        abs_dat <- stats::na.omit(abs_dat)
-        
-        if (nrow(abs_dat) == 0) {
-          stop('could not get valid background point values; is there a layer with only NA values?')
-        }
-        
-        if (nrow(abs_dat) < abs_samp/100) {
-          stop('only got:', nrow(abs_dat), 'random background point values; is there a layer with many NA values?')
-        }
-        
-        if (nrow(abs_dat) < abs_samp/10) {
-          warning('only got:', nrow(abs_dat), 'random background point values; Small exent? Or is there a layer with many NA values?')
-        }
-        #join presence and absence data
-        abs_dat <- cbind.data.frame(pres = c(rep(0,nrow(abs_dat))),abs_dat)
-        abs_dat$class <- rep('Pb', nrow(abs_dat) )
-        
-        #add the data for this class and tile, to the data for this tile
-        tile_dat <- rbind.data.frame(tile_dat, abs_dat)
-      }
-      else{
-        #Pick the raster mask belonging to this tile with prob = 0 is NA and the othersw are probs
-        prob_tif <-  prob_tifs[grepl(paste0(tile_i,'.tif'), prob_tifs)]
-        prob_tif <- prob_tif[!grepl('.aux.xml', prob_tif)]
-        prob_rast <- raster::raster(prob_tif)
-        print(sum(raster::values(prob_rast), na.rm = TRUE))
-        
-        if (sum(raster::values(prob_rast), na.rm = TRUE) > 0){
-          prob_rast[prob_rast<1] <- NA
+        if(randompt == TRUE && prob_tifs == FALSE){
           #get covariates for randomly sampled absence locations
           abs_dat <- data.frame()
           
           if (exists('pres_train_tile')){
             cat('Detecting absences for tiles with visual points\n')
-            abs_loc <- dismo::randomPoints(r_train, n = abs_samp, p = pres_train_tile, warn=0, mask=prob_rast)
+            abs_loc <- dismo::randomPoints(r_train, n = abs_samp, p = pres_train_tile, warn=0)
             #exclude pseude-absences that fall too close (< 20 m) to presence locations
             dist_abs2pres <- sp::spDists(abs_loc, sp::coordinates(Pols_tile))
             mindist_abs2pres <- apply(dist_abs2pres, 1, min)
             abs_loc <- abs_loc[mindist_abs2pres > 20,]
-            
           }else{
             cat('Detecting absences for tiles without visual points\n')
-            abs_loc <- dismo::randomPoints(r_train, n = abs_samp, warn=0, mask=prob_rast)
+            abs_loc <- dismo::randomPoints(r_train, n = abs_samp, warn=0 )
           }
-          
           abs_dat <- data.frame(raster::extract(r_train, abs_loc))
           abs_dat <- stats::na.omit(abs_dat)
+          
           if (nrow(abs_dat) == 0) {
             stop('could not get valid background point values; is there a layer with only NA values?')
           }
+          
           if (nrow(abs_dat) < abs_samp/100) {
             stop('only got:', nrow(abs_dat), 'random background point values; is there a layer with many NA values?')
           }
+          
           if (nrow(abs_dat) < abs_samp/10) {
             warning('only got:', nrow(abs_dat), 'random background point values; Small exent? Or is there a layer with many NA values?')
           }
@@ -258,34 +159,77 @@ sample_points <- function(r_train_dir, text_train_dir, tile = 'ALL', text = 'ALL
           
           #add the data for this class and tile, to the data for this tile
           tile_dat <- rbind.data.frame(tile_dat, abs_dat)
-        }else{
-          cat("We wont study this tile, doesnt have any ROI", tile_i,"\n")}
+        }
+        else{
+          #Pick the raster mask belonging to this tile with prob = 0 is NA and the othersw are probs
+          prob_tif <-  prob_tifs[grepl(paste0(tile_i,'.tif'), prob_tifs)]
+          prob_tif <- prob_tif[!grepl('.aux.xml', prob_tif)]
+          prob_rast <- raster::raster(prob_tif)
+          print(sum(raster::values(prob_rast), na.rm = TRUE))
+          
+          if (sum(raster::values(prob_rast), na.rm = TRUE) > 0){
+            prob_rast[prob_rast<1] <- NA
+            #get covariates for randomly sampled absence locations
+            abs_dat <- data.frame()
+            
+            if (exists('pres_train_tile')){
+              cat('Detecting absences for tiles with visual points\n')
+              abs_loc <- dismo::randomPoints(r_train, n = abs_samp, p = pres_train_tile, warn=0, mask=prob_rast)
+              #exclude pseude-absences that fall too close (< 20 m) to presence locations
+              dist_abs2pres <- sp::spDists(abs_loc, sp::coordinates(Pols_tile))
+              mindist_abs2pres <- apply(dist_abs2pres, 1, min)
+              abs_loc <- abs_loc[mindist_abs2pres > 20,]
+              
+            }else{
+              cat('Detecting absences for tiles without visual points\n')
+              abs_loc <- dismo::randomPoints(r_train, n = abs_samp, warn=0, mask=prob_rast)
+            }
+            
+            abs_dat <- data.frame(raster::extract(r_train, abs_loc))
+            abs_dat <- stats::na.omit(abs_dat)
+            if (nrow(abs_dat) == 0) {
+              stop('could not get valid background point values; is there a layer with only NA values?')
+            }
+            if (nrow(abs_dat) < abs_samp/100) {
+              stop('only got:', nrow(abs_dat), 'random background point values; is there a layer with many NA values?')
+            }
+            if (nrow(abs_dat) < abs_samp/10) {
+              warning('only got:', nrow(abs_dat), 'random background point values; Small exent? Or is there a layer with many NA values?')
+            }
+            #join presence and absence data
+            abs_dat <- cbind.data.frame(pres = c(rep(0,nrow(abs_dat))),abs_dat)
+            abs_dat$class <- rep('Pb', nrow(abs_dat) )
+            
+            #add the data for this class and tile, to the data for this tile
+            tile_dat <- rbind.data.frame(tile_dat, abs_dat)
+          }else{
+            cat("We wont study this tile, doesnt have any ROI", tile_i,"\n")}
+        }
+      }else{
+        cat("Not enoght layers for tile:", tile_i,"\n")
       }
+      
+      #return the tile_dat at the end of each iteration
+      tile_dat
+    }
+    cat("------------------------------------------\n")
+    
+    
+    
+    # report performance statistics 
+    if (parallel){
+      cat('using \n',foreach::getDoParWorkers(),' parallel workers,\n')
     }else{
-      cat("Not enoght layers for tile:", tile_i,"\n")
+      cat('processing sequentially on a single worker \n')
     }
     
-    #return the tile_dat at the end of each iteration
-    tile_dat
+    # close the cluster set up forparallel processing
+    if (parallel){
+      parallel::stopCluster(cl)
+    }
+    
+    })
   }
-  cat("------------------------------------------\n")
-  
-  
-
-  # report performance statistics 
-  if (parallel){
-    cat('using \n',foreach::getDoParWorkers(),' parallel workers,\n')
-  }else{
-    cat('processing sequentially on a single worker \n')
-  }
-  
-  # close the cluster set up forparallel processing
-  if (parallel){
-    parallel::stopCluster(cl)
-  }
-  
-  })
-  
   # save the extracted data ----
   if (!is.null(data_outp_dir)){
     data_file <- paste0(data_outp_name, '.rdsdata')

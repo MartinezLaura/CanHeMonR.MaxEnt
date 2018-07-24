@@ -7,7 +7,7 @@
 sample_points(r_train_dir, text_train_dir, tile = "ALL", text = "ALL",
   prob_tifs = FALSE, vuln_classes, training_pol_filename, field_name,
   ninputs_tile, data_outp_dir, abs_samp = 100, parallel = F, nWorkers = 4,
-  data_outp_name, randompt = TRUE)
+  data_outp_name, randompt = TRUE, EOS = FALSE)
 }
 \arguments{
 \item{r_train_dir}{A directory where .tifs for training can be found for multiple tiles}
@@ -44,6 +44,8 @@ The other places should appear as attributes in the field 'field_name' of Pols}
 \item{data_outp_name}{Character. Name of the data to output}
 
 \item{randompt}{Boolean. if True random points will be added in the tiles that doesn't have any visual point. Default TRUE}
+
+\item{EOS}{if EOS true the for loop will be avoided if False will work with a for loop. Default FALSE}
 }
 \value{
 Saves a serialize object with the list with class-specific data frames of which the first column is the presence-absence response that can be used to train distribution model.

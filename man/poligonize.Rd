@@ -4,18 +4,14 @@
 \alias{poligonize}
 \title{poligonize Raster}
 \usage{
-poligonize(rast, nameshp)
+poligonize(rast, rastpath)
 }
 \arguments{
-\item{rast}{to be poligonized}
+\item{rastpath}{path to the raster to polyginze}
 }
 \value{
 The Layer object
 }
 \description{
 Poligonize a raster with values between 0 and 1
-}
-\examples{
-\dontrun{
-}
 }

@@ -24,13 +24,13 @@
 #' }
 #' @export
 run_model <- function(predictor_dir,
-                                         text_train_dir,
-                                         MaxEntmodel_dir,
-                                         fname_MaxEntmodel_r,
-                                         output_dir,
-                                         rastername,
-                                         model_type,
-                                         loop){
+                      text_train_dir,
+                      MaxEntmodel_dir,
+                      fname_MaxEntmodel_r,
+                      output_dir,
+                      rastername,
+                      model_type,
+                      loop){
   
   require(raster)
   require(rJava)

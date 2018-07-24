@@ -35,4 +35,4 @@ devtools::install_github("MartinezLaura/CanHeMonR-Maxent")
 ```
 
 ## Example
-chack the Markdown document called main-Markdown.Rmd to see an example and description of the functions 
+check the Markdown document called main-Markdown.Rmd to see an example and description of the functions 

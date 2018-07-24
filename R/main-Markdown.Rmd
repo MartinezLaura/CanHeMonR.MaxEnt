@@ -10,7 +10,9 @@ This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
 
 ```{r}
+
 print("Hello World!")
+
 ```
 * Packages required:
   + raster
@@ -30,7 +32,7 @@ https://biodiversityinformatics.amnh.org/open_source/maxent/
 Please run the following code to check the avaiable packages and install if necessary
 
 ```{r}
-RequiredPackages <- c("rgeos", "raster","doParallel", "foreach", "rJava", "dismo", "maptools", "DiagrammeR", "sp") 
+RequiredPackages <- c("rgeos", "raster","doParallel", "foreach", "rJava", "dismo", "maptools", "DiagrammeR", "sp", "sf", "rmarkdown", "CanHeMonR.MaxEnt", "dplyr", "ggplot2") 
 for (i in RequiredPackages) { #Installs packages if not yet installed
     if (!require(i, character.only = TRUE)) install.packages(i)
 }
@@ -43,12 +45,16 @@ DiagrammeR::DiagrammeR("
 graph TB
     A>Point shapefile with precences] --> D[Sample presences and backgroud points]
     B>Raster files and textures to run] --> D
-    C>Biased tifs] --> D
-    D --> E>Serialize object with the points]
+    D --> E>Serialized object with the presence and background points]
     E --> F[Calibration and creation of MaxEnt model]
-    F --> G>serialize object with the model]
+    F --> G>Serialized object with the model]
     G --> H[Run model over the tiles]
     B --> H
+    H --> I>Tif files with the MaxEnt predictions]
+    I --> J[Post-process of gemoetry operations]
+    J --> K>Point shapefiles]
+    K --> L[Visual inspection od the output model]
+    L --> D
 ")
 ```
 
@@ -132,6 +138,36 @@ Run a saved MaxEnt model on the image data you want to predict.
 + A raster image for each tile with the probabilities or cummulative probabilities of presence for each class
 
 #####Function
+You can set the parameters and run it in the R console with:  
+```{r, eval=F, echo=T}
+render("run_model.r", params = list(predictor_dir = "",
+                                         text_train_dir = "",
+                                         MaxEntmodel_dir = "",
+                                         fname_MaxEntmodel_r = "",
+                                         output_dir = "",
+                                         rastername = "",
+                                         model_type = "",
+                                         loop = ""))
+
+```
+
+
+##Selection of the threshold and poligonization of the raster
+Creation of several serialized objects with different thresholds in order to select the one that maximized the retrival of Pine trees with the less false positive possible
+Selection of the smallest number of pixels detected inside a true tree-disk.
+Poligonization of the raster files.
+
+#####Inputs
+There are several inputs because three functions are executed in this step, therefore is better to access directily to the specific functions
+
+<em>More information and examples of the function in the code</em>
+
+
+#####Output
++ A shapefile based on the information of the raster image outputed by MaxEnt given a cutoff
+
+#####Function
+In this case three functions have to be executed
 You can set the parameters and run it in the R console with:  
 ```{r, eval=F, echo=T}
 render("run_model.r", params = list(predictor_dir = "",
