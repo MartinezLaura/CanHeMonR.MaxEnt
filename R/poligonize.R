@@ -1,9 +1,9 @@
-#' @title poligonize Raster
-#' @description Poligonize a raster with values between 0 and 1
-#' @param rastpath path to the raster to polyginze
-#' @return The Layer object
+#' @title Poligonize Raster
+#' @description Poligonize a raster with values between 0 and 1.
+#' @param rast Path to the raster to polyginze
+#' @return A SpatialDataFrame object
 #' @export
-poligonize <- function(rast, rastpath){
+Poligonize <- function(rast, rastpath){
   
   gdalformat = 'ESRI Shapefile'
   quiet=TRUE
@@ -20,7 +20,8 @@ poligonize <- function(rast, rastpath){
   ##############
   #Creation of the shapefile to extract the radius to work with
   ##############
-  outshape <- paste0('/HDD/trash/poligonize/',basename(rastpath))
+  tempdir =  tempdir()
+  outshape <- paste0(tempdir,'/',basename(rastpath))
   outshape <- sub('.tif', '.shp', outshape)
   f.exists <- file.exists(outshape)
   if (any(f.exists)){

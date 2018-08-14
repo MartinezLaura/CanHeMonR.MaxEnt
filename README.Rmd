@@ -13,13 +13,10 @@ Authors:
     + Pieter Beck
     + Laura Martinez
 
-Date: March, 2018
+Date: July, 2018
 
 [![Project Status: Active - The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/0.1.0/active.svg)](http://www.repostatus.org/#active) 
 
-# To do
-
-* Finish the workflow by adding the potsprocessing function
 
 # CanHeMonR.MaxEnt
 

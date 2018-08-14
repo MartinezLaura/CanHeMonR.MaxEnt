@@ -1,15 +1,15 @@
 ---
 title: "MaxEnt model for the detection of declining trees"
 output:
-  html_notebook: default
   html_document: default
+  html_notebook: default
 ---
 
 This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
 
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
 
-```{r}
+```{r, eval=FALSE}
 
 print("Hello World!")
 
@@ -31,7 +31,7 @@ https://biodiversityinformatics.amnh.org/open_source/maxent/
 
 Please run the following code to check the avaiable packages and install if necessary
 
-```{r}
+```{r, eval=FALSE}
 RequiredPackages <- c("rgeos", "raster","doParallel", "foreach", "rJava", "dismo", "maptools", "DiagrammeR", "sp", "sf", "rmarkdown", "CanHeMonR.MaxEnt", "dplyr", "ggplot2") 
 for (i in RequiredPackages) { #Installs packages if not yet installed
     if (!require(i, character.only = TRUE)) install.packages(i)
@@ -91,7 +91,8 @@ render("sample_points.r", params = list(r_train_dir= "" ,
                                         parallel= "",
                                         nWorkers= "",
                                         data_outp_name= "",
-                                        randompt= ""))
+                                        randompt= "", 
+                                        EOS= ""))
 
 ```
 
@@ -128,7 +129,7 @@ render("calibrate_model.r", params = list(vuln_classes = "",
 Run a saved MaxEnt model on the image data you want to predict.
 
 #####Inputs
-+ Path to the rasters and the associated textures of the area that we want to predict. It is important to add all the areas that we want to predict and not only a sample of it in order to help the model describe the variation of the data.
++ Path to the rasters and the associated textures of the area that we want to predict. 
 + Serialized object (rdsdata file) with the MaxEnt model you want to use
 
 <em>More information and examples of the function in the code</em>
@@ -147,37 +148,80 @@ render("run_model.r", params = list(predictor_dir = "",
                                          output_dir = "",
                                          rastername = "",
                                          model_type = "",
-                                         loop = ""))
+                                         EOS = ""))
 
 ```
 
 
-##Selection of the threshold and poligonization of the raster
-Creation of several serialized objects with different thresholds in order to select the one that maximized the retrival of Pine trees with the less false positive possible
-Selection of the smallest number of pixels detected inside a true tree-disk.
-Poligonization of the raster files.
+
+##Creation of the thresholds for rasters
+Creation of several serialized objects with different thresholds in order to select the one that maximized the retrival of Pine trees with the less false positive possible.
 
 #####Inputs
-There are several inputs because three functions are executed in this step, therefore is better to access directily to the specific functions
++ Path to the outputted rasters from the previous function.
++ A Point shapefile with the detected points
++ The minimum and maximim threshold that you want to study. Remeber that MaxEnt outputs a raster file with probablities between 0 and 1.
++ Number of 'absence' points to be randomly selected from each tile.
 
 <em>More information and examples of the function in the code</em>
 
 
 #####Output
-+ A shapefile based on the information of the raster image outputed by MaxEnt given a cutoff
++ A set of serialized objects for each the threshold.
 
 #####Function
-In this case three functions have to be executed
 You can set the parameters and run it in the R console with:  
 ```{r, eval=F, echo=T}
-render("run_model.r", params = list(predictor_dir = "",
-                                         text_train_dir = "",
-                                         MaxEntmodel_dir = "",
-                                         fname_MaxEntmodel_r = "",
-                                         output_dir = "",
-                                         rastername = "",
-                                         model_type = "",
-                                         loop = ""))
+render("sick_tree_errors.r", params = list(r_pred_dir  = "", 
+                                           tile  = "", 
+                                           prefix = "", 
+                                           vuln_classes = "", 
+                                           training_pnt_filename = "", 
+                                           radius = "", 
+                                           field_name = "", 
+                                           abs_samp  = "",
+                                           minthresh = "", 
+                                           maxthresh = "", 
+                                           stepthresh = "",
+                                           parallel = "", 
+                                           nWorkers = "", 
+                                           data_outp_dir = ""))
+
+```
+
+##Selection of the best threshold for rasters and poligonization
+Selection of the best cut-off probability thresholds that selects the one that maximized the retrival of Pine trees with the less false positive possible.
+Selection of the smallest number of pixels detected inside a true tree-disk.
+Poligonization of the raster files with the selected parameters.
+
+
+#####Inputs
++ Path to the serialized objects for each the threshold.
++ Path to the outputted rasters outputted by MaxEnt.
++ A Point shapefile with the detected points
++ The minimum and maximim threshold that you want to stdy. Remeber that MaxEnt outputs a raster file with probablities between 0 and 1.
++ Number of 'absence' points to be randomly selected from each tile.
+
+<em>More information and examples of the function in the code</em>
+
+
+#####Output
++ A polygon shapefile for each raster.
+
+#####Function
+You can set the parameters and run it in the R console with:  
+```{r, eval=F, echo=T}
+render("MaxCutoff", params = list(input_dir  = "", 
+                                  plots  = "", 
+                                  stadisticspath  = "", 
+                                  prefix  = "", 
+                                  max_error  = "", 
+                                  cla  = "", 
+                                  r_pred_dir  = "", 
+                                  tile  = "", 
+                                  max_area  = "", 
+                                  res  = "", 
+                                  outp_dir  = ""))
 
 ```
 
