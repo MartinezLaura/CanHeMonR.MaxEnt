@@ -10,8 +10,8 @@ knitr::opts_chunk$set(collapse=TRUE, comment="##", fig.retina=2, fig.path = "REA
 # PWN workflow for the detection of declining trees using MaxEnt
 
 Authors: 
-    + Pieter Beck
-    + Laura Martinez
+    Pieter Beck
+    Laura Martinez
 
 Date: July, 2018
 
@@ -27,7 +27,6 @@ The goal of CanHeMonR.MaxEnt is to create a workflow to detect declining trees i
 You can install CanHeMonR.MaxEnt from github with:
 
 ```{r gh-installation, eval = FALSE}
-# install.packages("devtools")
 devtools::install_github("MartinezLaura/CanHeMonR-Maxent")
 ```
 
